@@ -49,11 +49,54 @@ export default function GhostwriterPage() {
     }
   };
 
+  // --- دالة الـ Refine الجديدة ---
+  const refineContent = async (action: "shorter" | "emojify" | "formal") => {
+    if (!output || isLoading) return;
+
+    const previousText = output;
+    setIsLoading(true);
+    setCopied(false);
+
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
+
+      let refinePrompt = "";
+      if (action === "shorter") refinePrompt = "قم باختصار هذا النص بشكل كبير مع الحفاظ على الفكرة الأساسية.";
+      if (action === "emojify") refinePrompt = "أضف المزيد من الإيموجي المناسبة والمبدعة لهذا النص لجعله أكثر حيوية.";
+      if (action === "formal") refinePrompt = "قم بإعادة صياغة هذا النص ليكون أكثر رسمية واحترافية وبدون مزاح.";
+
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: refinePrompt },
+            { role: "user", content: previousText }
+          ],
+          model: "llama-3.3-70b-versatile"
+        })
+      });
+
+      const data = await response.json();
+      if (data.choices?.[0]) {
+        setOutput(data.choices[0].message.content);
+      }
+    } catch (error) {
+      setOutput(previousText);
+      alert("عذراً، حدث خطأ أثناء التعديل.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCopy = () => {
     if (!output) return;
     navigator.clipboard.writeText(output);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000); // يرجع لحالته الأصلية بعد ثانيتين
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -125,14 +168,63 @@ export default function GhostwriterPage() {
                 {copied ? "تم النسخ! ✓" : "نسخ المحتوى 📋"}
               </button>
             </div>
-            <div className="whitespace-pre-wrap leading-relaxed text-lg font-light">
+
+            <div className="whitespace-pre-wrap leading-relaxed text-lg font-light mb-6">
               {output || "اكتب فكرتك واختار المنصة لتبدأ السحر..."}
+            </div>
+
+            {/* --- أزرار التعديل السريع (Refine Buttons) --- */}
+            {output && !isLoading && (
+              <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-800">
+                <button
+                  onClick={() => refineContent("shorter")}
+                  className="bg-slate-800 hover:bg-blue-900 text-xs text-slate-300 px-3 py-2 rounded-full border border-slate-700 transition-all flex items-center gap-1"
+                >
+                  ✂️ اختصر
+                </button>
+                <button
+                  onClick={() => refineContent("emojify")}
+                  className="bg-slate-800 hover:bg-blue-900 text-xs text-slate-300 px-3 py-2 rounded-full border border-slate-700 transition-all flex items-center gap-1"
+                >
+                  ✨ إيموجي أكثر
+                </button>
+                <button
+                  onClick={() => refineContent("formal")}
+                  className="bg-slate-800 hover:bg-blue-900 text-xs text-slate-300 px-3 py-2 rounded-full border border-slate-700 transition-all flex items-center gap-1"
+                >
+                  👔 خليه رسمي
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* LinkedIn Mockup Preview */}
+          <div className="bg-white border border-slate-200 rounded-lg max-w-[550px] mx-auto mt-10 shadow-sm text-right px-4 py-3 mb-10" dir="rtl">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-12 h-12 bg-blue-600 rounded-full overflow-hidden flex-shrink-0 border flex items-center justify-center text-white font-bold">
+                AM
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-black">Abdallah Mohamedien</h4>
+                <p className="text-xs text-slate-500">Junior Front End Developer • 1st</p>
+                <p className="text-[10px] text-slate-400">Now • 🌐</p>
+              </div>
+            </div>
+
+            <div className="text-sm text-slate-800 leading-snug whitespace-pre-wrap mb-4">
+              {output || "هنا سيظهر شكل البوست النهائي..."}
+            </div>
+
+            <div className="border-t border-slate-100 pt-2 flex justify-around">
+              <button className="text-slate-500 text-sm font-bold hover:bg-slate-50 p-2 rounded flex items-center gap-1">👍 أعجبني</button>
+              <button className="text-slate-500 text-sm font-bold hover:bg-slate-50 p-2 rounded flex items-center gap-1">💬 تعليق</button>
+              <button className="text-slate-500 text-sm font-bold hover:bg-slate-50 p-2 rounded flex items-center gap-1">🔁 إعادة نشر</button>
             </div>
           </div>
         </div>
 
-        <footer className="mt-12 text-center text-slate-400 text-xs tracking-widest uppercase">
-          Build by AbdalluhMo  for Developers • 2026
+        <footer className="mt-12 text-center text-slate-400 text-xs tracking-widest uppercase pb-10">
+          Build by AbdallahMo for Developers • 2026
         </footer>
       </div>
     </main>
